@@ -69,7 +69,7 @@ void calculateGradients(Mat_<float> &I, Mat_<float> &Ix, Mat_<float> &Iy) {
             0.5f * (I.at<float>(I.rows - 1, I.cols - 1) - I.at<float>(I.rows - 2, I.cols - 1));
 }
 
-void calculateSecondOrderGradients(Mat_<float> &I, Mat_<float> &Ixx, Mat_<float> &Iyy, Mat_<float> &Ixy) {
+void calculateSecondOrderGradients(Mat_<float> &I, Mat_<float> &Ixx, Mat_<float> &Iyy, Mat_<float> &Ixy, Mat_<float> &Iyx) {
     Mat_<float> kxx = Mat::zeros(3, 3, CV_32F);
     kxx.at<float>(1, 0) = 1;
     kxx.at<float>(1, 2) = 1;
@@ -83,7 +83,10 @@ void calculateSecondOrderGradients(Mat_<float> &I, Mat_<float> &Ixx, Mat_<float>
     kxy.at<float>(2, 0) = -1;
     kxy.at<float>(2, 2) = 1;
 
+    Mat_<float> kyx = kxy.t();
+
     filter2D(I, Ixx, CV_32F, kxx);
     filter2D(I, Iyy, CV_32F, kyy);
     filter2D(I, Ixy, CV_32F, kxy);
+    filter2D(I, Iyx, CV_32F, kyx);
 }

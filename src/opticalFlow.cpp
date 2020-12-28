@@ -7,10 +7,10 @@
 #include <vector>
 #include <opencv2/imgproc.hpp>
 
-#define OUTER_LOOP_COUNT 10
+#define OUTER_LOOP_COUNT 1
 #define INNER_LOOP_COUNT 1
 #define EPSILON 0.001
-#define MAX_SOR_ITER 100
+#define MAX_SOR_ITER 1
 #define SOR_PARAM 1.9
 
 void calculate_psi_smooth(Mat_<float> &ux, Mat_<float> &uy, Mat_<float> &vx, Mat_<float> &vy, Mat_<float> &psi_smooth) {
@@ -201,7 +201,7 @@ void calculate_psi_gradient(Mat_<float> &I1x, Mat_<float> &I1y, Mat_<float> &I2x
     }
 }
 
-float sor_iterate(Mat_<float> &Au, Mat_<float> &Av, Mat_<float> &Du, Mat_<float> &Dv, Mat_<float> &D, Mat_<float> &du,
+void sor_iterate(Mat_<float> &Au, Mat_<float> &Av, Mat_<float> &Du, Mat_<float> &Dv, Mat_<float> &D, Mat_<float> &du,
                   Mat_<float> &dv,
                   float &alpha, Mat_<float> &psi1, Mat_<float> &psi2, Mat_<float> &psi3, Mat_<float> &psi4,
                   float tolerance) {
@@ -257,8 +257,8 @@ float sor_iterate(Mat_<float> &Au, Mat_<float> &Av, Mat_<float> &Du, Mat_<float>
                           (dv.at<float>(i, j) - dv_last) * (dv.at<float>(i, j) - dv_last));
             }
         }
-//        for (int i = 0; i < du.rows; ++i) {
-//            for (int j = 0; j < du.cols; ++j) {
+//        for (int i = 0; i < 50; ++i) {
+//            for (int j = 0; j < 50; ++j) {
 //                std::cout<<du.at<float>(i,j)<<"\n";
 //            }
 //        }
@@ -487,7 +487,7 @@ calculateLevelOpticalFlow(Mat_<float> &I1, Mat_<float> &I2, Mat_<float> &u, Mat_
     Mat_<float> I1x, I1y;
     Mat_<float> I2x, I2y;
 //    Mat_<float> I1xx, I1yy, I1xy;
-    Mat_<float> I2xx, I2yy, I2xy;
+    Mat_<float> I2xx, I2yy, I2xy, I2yx;
     Mat_<float> I1_warped, I1x_warped, I1y_warped, I1xx_warped, I1yy_warped, I1xy_warped;
     Mat_<float> ux, uy, vx, vy;
     Mat_<float> psi_smooth, psi_data, psi_gradient;
@@ -507,7 +507,7 @@ calculateLevelOpticalFlow(Mat_<float> &I1, Mat_<float> &I2, Mat_<float> &u, Mat_
     calculateGradients(I2, I2x, I2y);
 
     // calculate second order partial derivatives
-    calculateSecondOrderGradients(I2, I2xx, I2yy, I2xy);
+    calculateSecondOrderGradients(I2, I2xx, I2yy, I2xy, I2yx);
 
     // outer iterations
     for (int i = 0; i < OUTER_LOOP_COUNT; ++i) {
@@ -522,6 +522,7 @@ calculateLevelOpticalFlow(Mat_<float> &I1, Mat_<float> &I2, Mat_<float> &u, Mat_
             }
         }
         remap(I1, I1_warped, xmap, ymap, INTER_CUBIC);
+//        std::cout<<"I1 "<<I1.rows<<" "<<I1.cols<<" I1warped "<<I1_warped.rows<<" "<<I1_warped.cols<<"\n";
         remap(I1x, I1x_warped, xmap, ymap, INTER_CUBIC);
         remap(I1y, I1y_warped, xmap, ymap, INTER_CUBIC);
 //        remap(I1xx, I1xx_warped, xmap, ymap, INTER_CUBIC);
@@ -612,7 +613,7 @@ calculateLevelOpticalFlow(Mat_<float> &I1, Mat_<float> &I2, Mat_<float> &u, Mat_
                         float dx = I2x.at<float>(k, l) - I1x_warped.at<float>(k, l);
                         float dy = I2y.at<float>(k, l) - I1y_warped.at<float>(k, l);
                         float GAu = -gamma * psi_gradient.at<float>(k, l) *
-                                    (dx * I2xx.at<float>(k, l) + dy * I2xy.at<float>(k, l));
+                                    (dx * I2xx.at<float>(k, l) + dy * I2yx.at<float>(k, l));
                         float GAv = -gamma * psi_gradient.at<float>(k, l) *
                                     (dx * I2xy.at<float>(k, l) + dy * I2yy.at<float>(k, l));
                         float GDu = gamma * psi_gradient.at<float>(k, l) *
@@ -691,12 +692,15 @@ calculateOpticalFlow(Mat_<float> &I1, Mat_<float> &I2, Mat_<float> &u, Mat_<floa
     }
     std::cout << "Pyramid Level = " << pyramidLevel << "\n";
     for (int i = pyramidLevel - 1; i >= 0; i--) {
+//        std::cout<<"I1_Pyramid "<<I1_Pyramid[i].rows<<" "<<I1_Pyramid[i].cols<<"    ";
+//        std::cout<<"I2_Pyramid "<<I2_Pyramid[i].rows<<" "<<I2_Pyramid[i].cols<<"\n";
         //calculate optical flow
         calculateLevelOpticalFlow(I1_Pyramid[i], I2_Pyramid[i], u_Pyramid[i], v_Pyramid[i], alpha, gamma,
                                   tolerance);
         if (i != 0) {
-            resize(u_Pyramid[i], u_Pyramid[i - 1], Size(), 1.0f / pyramidFactor, 1.0f / pyramidFactor, INTER_CUBIC);
-            resize(v_Pyramid[i], v_Pyramid[i - 1], Size(), 1.0f / pyramidFactor, 1.0f / pyramidFactor, INTER_CUBIC);
+            Size2i size2I(u_Pyramid[i-1].cols, u_Pyramid[i-1].rows);
+            resize(u_Pyramid[i], u_Pyramid[i - 1], size2I, 0, 0, INTER_CUBIC);
+            resize(v_Pyramid[i], v_Pyramid[i - 1], size2I, 0, 0, INTER_CUBIC);
         }
     }
 

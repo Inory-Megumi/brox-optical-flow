@@ -56,6 +56,9 @@ int main(int argc, char **argv) {
     Mat_<float> u = Mat::zeros(I1.rows, I1.cols, CV_32F);
     Mat_<float> v = Mat::zeros(I1.rows, I1.cols, CV_32F);
 
+//    std::cout<<"I1 input size "<<I1.rows<<" "<<I1.cols<<"\n";
+//    std::cout<<"I2 input size "<<I2.rows<<" "<<I2.cols<<"\n";
+
     calculateOpticalFlow(I1, I2, u, v, alpha, gamma, pyramidLevel, pyramidFactor, tolerance);
 
 //    1u.convertTo(uu, CV_8U);
